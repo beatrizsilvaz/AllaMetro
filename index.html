@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Allá Metro - Tu mejor ruta, en segundos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .active-tab {
+            background-color: white !important;
+            color: #1d4ed8 !important;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        .pulse-live {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        /* Estilos do Mapa de Rota Interativo */
+        .route-line-vertical {
+            position: relative;
+        }
+        .route-line-vertical::before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            bottom: 24px;
+            left: 19px;
+            width: 4px;
+            background: linear-gradient(to bottom, #2563eb, #4f46e5);
+            z-index: 0;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen selection:bg-blue-600 selection:text-white">
+
+    <!-- HEADER / NAVBAR -->
+    <header class="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-800 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <!-- Logo Allá Metro -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('routes')">
+                <div class="bg-white p-2.5 rounded-xl shadow-md flex items-center justify-center text-blue-600">
+                    <i class="fa-solid fa-train-subway text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-tight leading-none uppercase italic drop-shadow-sm flex items-center gap-2">
+                        Allá Metro
+                        <span class="text-[10px] font-semibold bg-emerald-500 text-white px-2 py-0.5 rounded-full not-italic flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-white rounded-full pulse-live"></span> AO VIVO
+                        </span>
+                    </h1>
+                    <p class="text-xs text-blue-100 font-medium">Sua melhor rota com tempos reais</p>
+                </div>
+            </div>
+
+            <!-- Navegação Principal -->
+            <nav class="flex items-center space-x-1 sm:space-x-2 bg-blue-900/40 p-1.5 rounded-2xl backdrop-blur-md overflow-x-auto max-w-full">
+                <button onclick="switchTab('routes')" id="nav-routes" class="tab-btn active-tab flex items-center space-x-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all hover:bg-white/10 whitespace-nowrap">
+                    <i class="fa-solid fa-location-arrow"></i>
+                    <span>Rotas</span>
+                </button>
+                <button onclick="switchTab('trains')" id="nav-trains" class="tab-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all hover:bg-white/10 whitespace-nowrap">
+                    <i class="fa-solid fa-users-line"></i>
+                    <span>Lotação</span>
+                </button>
+                <button onclick="switchTab('accessibility')" id="nav-accessibility" class="tab-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all hover:bg-white/10 whitespace-nowrap">
+                    <i class="fa-solid fa-wheelchair"></i>
+                    <span>Acessibilidade</span>
+                </button>
+                <button onclick="switchTab('crowdsource')" id="nav-crowdsource" class="tab-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all hover:bg-white/10 whitespace-nowrap">
+                    <i class="fa-solid fa-bullhorn"></i>
+                    <span>Comunidade</span>
+                </button>
+                <button onclick="switchTab('stats')" id="nav-stats" class="tab-btn flex items-center space-x-2 px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold text-white transition-all hover:bg-white/10 whitespace-nowrap">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Sustentabilidade</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="max-w-6xl w-full mx-auto p-4 sm:p-6 flex-grow">
+
+        <!-- ABA 1: PLANEJADOR DE ROTAS -->
+        <section id="tab-routes" class="tab-content grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Formulário de Seleção -->
+            <div class="lg:col-span-4 bg-white p-6 rounded-3xl shadow-sm border border-slate-200/80 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </div>
+                        <h2 class="text-lg font-bold text-slate-800">Planejar Viagem</h2>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Origem</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-location-dot absolute left-3 top-3.5 text-blue-600 text-sm"></i>
+                                <select id="origin-select" onchange="renderRoutes()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium text-sm">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center -my-2">
+                            <button onclick="swapStations()" class="bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 p-2 rounded-full border border-slate-200 transition-colors">
+                                <i class="fa-solid fa-arrows-up-down"></i>
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Destino</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-flag-checkered absolute left-3 top-3.5 text-indigo-600 text-sm"></i>
+                                <select id="destination-select" onchange="renderRoutes()" class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 font-medium text-sm">
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Filtro Acessível -->
+                        <div class="pt-2">
+                            <label class="flex items-center space-x-2 cursor-pointer">
+                                <input type="checkbox" id="accessible-filter" onchange="renderRoutes()" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500">
+                                <span class="text-xs font-semibold text-slate-600 flex items-center gap-1">
+                                    <i class="fa-solid fa-wheelchair text-sky-600"></i> Apenas rotas acessíveis (Elevadores)
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button onclick="renderRoutes()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-route"></i>
+                        <span>Buscar Melhor Rota</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Rotas Calculadas -->
+            <div class="lg:col-span-8 space-y-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span>Opções de Itinerário</span>
+                        <span class="text-xs bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1">
+                            <span class="w-2 h-2 bg-emerald-500 rounded-full pulse-live"></span> Tempo Real GPS
+                        </span>
+                    </h3>
+                    <span id="live-clock" class="text-xs font-mono bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-semibold">14:26:00</span>
+                </div>
+
+                <div id="routes-container" class="space-y-4">
+                    <!-- Rotas inseridas dinamicamente pelo JS -->
+                </div>
+
+                <!-- NOVO: VISUALIZADOR DE ROTA ESTILO GOOGLE MAPS -->
+                <div id="route-map-card" class="bg-slate-900 text-white p-6 rounded-3xl shadow-xl border border-slate-800 transition-all mt-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold tracking-widest text-blue-400 bg-blue-900/50 px-2.5 py-1 rounded-full border border-blue-700/50">
+                                Visualização de Mapa & Trajeto
+                            </span>
+                            <h3 id="map-route-title" class="text-xl font-black mt-2 text-white">Carregando Trajeto...</h3>
+                        </div>
+                        <div class="text-right">
+                            <span id="map-route-time" class="text-2xl font-black text-emerald-400">0 min</span>
+                            <p class="text-xs text-slate-400">Tempo total de viagem</p>
+                        </div>
+                    </div>
+
+                    <!-- Trajeto Gráfico Dinâmico Estilo Maps -->
+                    <div id="interactive-route-map" class="py-6 route-line-vertical space-y-6">
+                        <!-- Estações e passos gerados via JS -->
+                    </div>
+
+                    <div class="bg-slate-800/80 p-4 rounded-2xl border border-slate-700/60 flex items-center justify-between text-xs text-slate-300">
+                        <span class="flex items-center gap-2">
+                            <i class="fa-solid fa-wheelchair text-sky-400 text-sm"></i>
+                            <span id="map-accessibility-note">Todas as estações desta rota possuem elevadores.</span>
+                        </span>
+                        <span class="bg-blue-600 text-white font-bold px-3 py-1 rounded-lg">Estilo Maps</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 2: LOTAÇÃO DOS TRENS EM TEMPO REAL -->
+        <section id="tab-trains" class="tab-content hidden space-y-6">
+            <div class="bg-slate-900 text-white p-6 rounded-3xl shadow-xl relative overflow-hidden">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6 relative z-10">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-bold bg-blue-600 text-white px-3 py-1 rounded-full uppercase tracking-wider">Monitoramento Inteligente</span>
+                            <span id="peak-status-badge" class="text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full">
+                                Horário Normal
+                            </span>
+                        </div>
+                        <h2 class="text-2xl font-black">Lotação do Trem por Vagão</h2>
+                        <p class="text-xs text-slate-400 mt-1">Estação Monitorada: <strong id="active-monitoring-station" class="text-white">Estação Central — Linha 1 Azul</strong></p>
+                    </div>
+
+                    <div class="flex items-center space-x-3 text-xs bg-slate-800 p-2 rounded-xl border border-slate-700">
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-emerald-500 rounded-full"></span> Livre</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-amber-400 rounded-full"></span> Moderado</span>
+                        <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-rose-500 rounded-full"></span> Lotado</span>
+                    </div>
+                </div>
+
+                <!-- Simulação Visual do Trem -->
+                <div class="relative z-10">
+                    <div class="text-xs font-bold text-slate-400 mb-2 flex items-center justify-between">
+                        <span>SENTIDO DO TREM ➔</span>
+                        <span>Próximo trem em: <strong id="train-countdown" class="text-emerald-400 font-mono text-sm">01:42</strong></span>
+                    </div>
+
+                    <div id="carriages-container" class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                        <!-- Vagões gerados via JS -->
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-slate-800/60 border border-slate-700 p-4 rounded-xl flex items-center space-x-3 text-xs text-slate-300">
+                    <i class="fa-solid fa-circle-info text-blue-400 text-base"></i>
+                    <span>
+                        <strong>Dica Allá Metro:</strong> Atualizações enviadas via telemetria dos trens e sensores nas portas das composições em tempo real.
+                    </span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 3: PLANO DE ACESSIBILIDADE -->
+        <section id="tab-accessibility" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
+                        <i class="fa-solid fa-wheelchair text-xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Plano de Acessibilidade & Inclusão Urbana</h2>
+                        <p class="text-xs text-slate-500">Eliminando barreiras físicas e facilitando o uso do transporte público em todo o Brasil</p>
+                    </div>
+                </div>
+
+                <!-- Diretrizes -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 my-6">
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-center">
+                        <span class="text-2xl mb-1 block">🛗</span>
+                        <h4 class="text-xs font-bold text-slate-800">Elevadores</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Acesso facilitado</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-center">
+                        <span class="text-2xl mb-1 block">🦯</span>
+                        <h4 class="text-xs font-bold text-slate-800">Pisos Táteis</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Nas plataformas</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-center">
+                        <span class="text-2xl mb-1 block">🪜</span>
+                        <h4 class="text-xs font-bold text-slate-800">Corrimãos Duplos</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Escadas e rampas</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-center">
+                        <span class="text-2xl mb-1 block">👟</span>
+                        <h4 class="text-xs font-bold text-slate-800">Antiderrapantes</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Superfícies seguras</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-center">
+                        <span class="text-2xl mb-1 block">⠃</span>
+                        <h4 class="text-xs font-bold text-slate-800">Sinal Braille</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Placas & corrimãos</p>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl text-center">
+                        <span class="text-2xl mb-1 block">🗺️</span>
+                        <h4 class="text-xs font-bold text-slate-800">Mapa Adaptado</h4>
+                        <p class="text-[10px] text-slate-500 mt-0.5">Rotas sem barreiras</p>
+                    </div>
+                </div>
+
+                <h3 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Recursos de Acessibilidade por Estação</h3>
+                <div id="accessibility-list" class="divide-y divide-slate-100 border rounded-2xl overflow-hidden">
+                    <!-- Estações geradas via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 4: CROWDSOURCING & REPORTES DA COMUNIDADE -->
+        <section id="tab-crowdsource" class="tab-content hidden grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-5 bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                <div class="flex items-center space-x-2 mb-4">
+                    <div class="p-2 bg-blue-100 text-blue-700 rounded-xl">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h2 class="text-lg font-bold text-slate-800">Reportar Ocorrência</h2>
+                </div>
+
+                <form onsubmit="submitReport(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Estação</label>
+                        <select id="report-station" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Tipo de Evento</label>
+                        <select id="report-type" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
+                            <option value="Lotado">Lotação Alta</option>
+                            <option value="Manutenção">Elevador / Escada Parada</option>
+                            <option value="Atraso">Atraso nos Trens</option>
+                            <option value="Normal">Fluxo Tranquilo</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Mensagem (Detalhes)</label>
+                        <textarea id="report-message" rows="3" required placeholder="Ex: Fila grande no elevador principal..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Publicar Relato</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Feed de Alertas -->
+            <div class="lg:col-span-7 space-y-4">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center justify-between">
+                    <span>Alertas Recentes da Comunidade</span>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full font-bold">Crowdsourcing</span>
+                </h3>
+
+                <div id="reports-feed" class="space-y-3">
+                    <!-- Feed preenchido dinamicamente pelo JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ABA 5: DASHBOARD DE SUSTENTABILIDADE & DADOS PPI -->
+        <section id="tab-stats" class="tab-content hidden space-y-6">
+            <div class="bg-blue-900 text-white p-6 rounded-3xl shadow-md relative overflow-hidden">
+                <div class="relative z-10">
+                    <span class="text-xs font-bold bg-blue-700 text-blue-200 px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">ODS 9 & 11 - ONU</span>
+                    <h2 class="text-2xl font-black">Mobilidade & Cidades Sustentáveis</h2>
+                    <p class="text-sm text-blue-100 max-w-2xl mt-1">
+                        Incentivando o transporte público limpo para reduzir emissões de carbono e promover cidades mais eficientes no Brasil.
+                    </p>
+                </div>
+                <i class="fa-solid fa-leaf text-9xl absolute -right-6 -bottom-10 text-blue-800/30 pointer-events-none"></i>
+            </div>
+
+            <!-- Cards Estatísticos adaptados -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Viajantes Metrô/Dia</span>
+                        <i class="fa-solid fa-train-subway text-blue-600 text-lg"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800">4,5 M</h3>
+                    <p class="text-xs text-slate-500 mt-1">Média nas grandes metrópoles</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Carros em Trânsito</span>
+                        <i class="fa-solid fa-car-side text-amber-500 text-lg"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800">6,2 M</h3>
+                    <p class="text-xs text-slate-500 mt-1">Deslocamentos diários individuais</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase">População Urbana</span>
+                        <i class="fa-solid fa-city text-indigo-600 text-lg"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800">12,3 M</h3>
+                    <p class="text-xs text-slate-500 mt-1">Habitantes na região metropolitana</p>
+                </div>
+
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Redução de CO₂</span>
+                        <i class="fa-solid fa-leaf text-emerald-600 text-lg"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800">-35%</h3>
+                    <p class="text-xs text-slate-500 mt-1">Impacto com uso do transporte público</p>
+                </div>
+            </div>
+
+            <!-- Gráfico Comparativo -->
+            <div class="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 class="text-base font-bold text-slate-800 mb-4">Comparativo de Indicadores (Mobilidade Urbana)</h3>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span>População Região Metropolitana</span>
+                            <span class="text-slate-700">12,3 M</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                            <div class="bg-blue-600 h-full rounded-full" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span>Carros em Deslocamento Diário</span>
+                            <span class="text-slate-700">6,2 M</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                            <div class="bg-amber-500 h-full rounded-full" style="width: 50%;"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs font-bold mb-1">
+                            <span>Viajantes em Metrô/Trem (Média Diária)</span>
+                            <span class="text-slate-700">4,5 M</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                            <div class="bg-indigo-600 h-full rounded-full" style="width: 36%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER E CRÉDITOS DO PROJETO -->
+    <footer class="bg-slate-900 text-slate-400 text-xs py-6 border-t border-slate-800 mt-12">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                <p class="font-bold text-slate-200">Allá Metro — Prototipagem de Sistema de Mobilidade para o Brasil</p>
+                <p class="text-slate-500 mt-0.5">Projeto Profissional Interdisciplinar (PPI) | Aluna: Anna Beatriz</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-full border border-slate-700 font-mono text-[11px]">
+                    ODS 9 & 11 ONU
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- LÓGICA EM JAVASCRIPT PURO -->
+    <script>
+        // Estações Protótipo com distâncias reais em km para cálculo dinâmico de tempo
+        const STATIONS = [
+            { id: 'central', name: 'Estação Central', lines: ['Linha 1 Azul', 'Linha 2 Verde'], accessible: true, elevators: 4, tactilePaving: true, brailleSignage: true, kmPos: 0 },
+            { id: 'luz', name: 'Estação Luz', lines: ['Linha 1 Azul', 'Linha 4 Amarela'], accessible: true, elevators: 3, tactilePaving: true, brailleSignage: true, kmPos: 3.2 },
+            { id: 'se', name: 'Estação Sé', lines: ['Linha 1 Azul', 'Linha 3 Vermelha'], accessible: true, elevators: 6, tactilePaving: true, brailleSignage: false, kmPos: 5.1 },
+            { id: 'paulista', name: 'Estação Paulista', lines: ['Linha 4 Amarela'], accessible: true, elevators: 5, tactilePaving: true, brailleSignage: true, kmPos: 8.4 },
+            { id: 'terminal', name: 'Terminal Norte', lines: ['Linha 2 Verde'], accessible: true, elevators: 2, tactilePaving: true, brailleSignage: true, kmPos: 12.0 },
+            { id: 'bosque', name: 'Bosque da Saúde', lines: ['Linha 1 Azul'], accessible: false, elevators: 0, tactilePaving: true, brailleSignage: false, kmPos: 14.8 },
+            { id: 'universidade', name: 'Cidade Universitária', lines: ['Linha 3 Vermelha'], accessible: true, elevators: 4, tactilePaving: true, brailleSignage: true, kmPos: 18.5 }
+        ];
+
+        const reports = [
+            { id: 1, station: 'Estação Central', type: 'Lotado', message: 'Plataforma 1 movimentada no horário de pico.', time: 'Há 5 min', upvotes: 14 },
+            { id: 2, station: 'Estação Sé', type: 'Manutenção', message: 'Elevador principal em revisão preventiva.', time: 'Há 20 min', upvotes: 9 }
+        ];
+
+        // Preencher os selects de estações ao carregar a página
+        function initializeStationSelects() {
+            const originSelect = document.getElementById('origin-select');
+            const destSelect = document.getElementById('destination-select');
+            const reportSelect = document.getElementById('report-station');
+
+            const optionsHtml = STATIONS.map(st => `<option value="${st.id}">${st.name} (${st.lines.join(', ')})</option>`).join('');
+
+            if (originSelect) originSelect.innerHTML = optionsHtml;
+            if (destSelect) {
+                destSelect.innerHTML = optionsHtml;
+                if (STATIONS[1]) destSelect.value = STATIONS[1].id; // Seleciona a 2ª por padrão
+            }
+            if (reportSelect) reportSelect.innerHTML = STATIONS.map(st => `<option value="${st.name}">${st.name}</option>`).join('');
+        }
+
+        // Regras de cálculo de tempo real (Velocidade média comercial = 35 km/h + 45s por estação)
+        const AVG_SPEED_KMH = 35;
+        const DWELL_TIME_MIN = 0.75; // 45 segundos por parada
+
+        let selectedRouteIndex = 0;
+
+        function calculateRealTime(st1, st2, transferPenaltyMinutes = 0) {
+            const dist = Math.abs(st1.kmPos - st2.kmPos);
+            const travelMinutes = (dist / AVG_SPEED_KMH) * 60;
+            const stationCount = Math.max(1, Math.round(dist / 2.5)); 
+            const totalMinutes = Math.round(travelMinutes + (stationCount * DWELL_TIME_MIN) + transferPenaltyMinutes + 2);
+            return { minutes: totalMinutes, stops: stationCount, co2: (dist * 0.08).toFixed(1) };
+        }
+
+        function renderRouteMap(route, st1, st2) {
+            const mapCard = document.getElementById('route-map-card');
+            const mapTitle = document.getElementById('map-route-title');
+            const mapTime = document.getElementById('map-route-time');
+            const mapContainer = document.getElementById('interactive-route-map');
+            const mapAccessNote = document.getElementById('map-accessibility-note');
+
+            if (!mapCard) return;
+
+            mapTitle.innerText = `${st1.name} ➔ ${st2.name} (${route.title})`;
+            mapTime.innerText = route.time;
+            mapAccessNote.innerText = st1.accessible && st2.accessible 
+                ? 'Esta rota é 100% acessível com elevadores operacionais.' 
+                : 'Atenção: Algumas plataformas exigem utilização de escadas rolantes.';
+
+            const idx1 = STATIONS.findIndex(s => s.id === st1.id);
+            const idx2 = STATIONS.findIndex(s => s.id === st2.id);
+            const step = idx1 <= idx2 ? 1 : -1;
+            
+            let intermediateStations = [];
+            for (let i = idx1; i !== idx2 + step; i += step) {
+                if (STATIONS[i]) intermediateStations.push(STATIONS[i]);
+            }
+
+            let html = `
+                <div class="relative z-10 flex items-start space-x-4">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 border-4 border-slate-900 flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                        <i class="fa-solid fa-location-dot text-sm"></i>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-blue-400 uppercase tracking-wider">Origem • Embarque</span>
+                            <span class="text-[11px] bg-blue-900/60 text-blue-200 px-2 py-0.5 rounded border border-blue-700/50">${st1.lines[0]}</span>
+                        </div>
+                        <h4 class="text-lg font-black text-white mt-1">${st1.name}</h4>
+                        <p class="text-xs text-slate-300 mt-1 flex items-center gap-1">
+                            <i class="fa-solid fa-train-subway text-emerald-400"></i>
+                            Embarcar na <strong class="text-white">${route.boarding}</strong> para conexão rápida.
+                        </p>
+                    </div>
+                </div>
+            `;
+
+            if (intermediateStations.length > 2) {
+                const stopsCount = intermediateStations.length - 2;
+                html += `
+                    <div class="relative z-10 flex items-center space-x-4">
+                        <div class="w-10 h-10 rounded-full bg-slate-700 border-4 border-slate-900 flex items-center justify-center text-slate-300 text-xs font-bold flex-shrink-0">
+                            +${stopsCount}
+                        </div>
+                        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700/50 w-full text-xs text-slate-300 flex items-center justify-between">
+                            <span>Passará por <strong>${stopsCount} estações intermediárias</strong></span>
+                            <span class="text-[10px] text-slate-400 font-mono">~${Math.round(stopsCount * 2.5)} min</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            if (route.transfers > 0) {
+                html += `
+                    <div class="relative z-10 flex items-start space-x-4">
+                        <div class="w-10 h-10 rounded-full bg-amber-500 border-4 border-slate-900 flex items-center justify-center text-slate-950 font-bold flex-shrink-0">
+                            <i class="fa-solid fa-arrows-split-up-and-left text-sm"></i>
+                        </div>
+                        <div class="bg-amber-950/40 p-4 rounded-2xl border border-amber-500/30 w-full">
+                            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Transbordo / Conexão</span>
+                            <h4 class="text-sm font-bold text-amber-200 mt-0.5">Fazer troca de linha na plataforma</h4>
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="relative z-10 flex items-start space-x-4">
+                    <div class="w-10 h-10 rounded-full bg-emerald-500 border-4 border-slate-900 flex items-center justify-center text-slate-950 shadow-lg flex-shrink-0">
+                        <i class="fa-solid fa-flag-checkered text-sm"></i>
+                    </div>
+                    <div class="bg-slate-800 p-4 rounded-2xl border border-slate-700 w-full">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider">Desembarque • Destino Final</span>
+                            <span class="text-[11px] bg-emerald-900/60 text-emerald-200 px-2 py-0.5 rounded border border-emerald-700/50">Chegada</span>
+                        </div>
+                        <h4 class="text-lg font-black text-white mt-1">${st2.name}</h4>
+                    </div>
+                </div>
+            `;
+
+            mapContainer.innerHTML = html;
+        }
+
+        function renderRoutes() {
+            const originId = document.getElementById('origin-select').value;
+            const destId = document.getElementById('destination-select').value;
+            const accessibleOnly = document.getElementById('accessible-filter').checked;
+            const container = document.getElementById('routes-container');
+
+            const st1 = STATIONS.find(s => s.id === originId) || STATIONS[0];
+            const st2 = STATIONS.find(s => s.id === destId) || STATIONS[1];
+
+            const baseCalc = calculateRealTime(st1, st2, 0);
+            const directCalc = calculateRealTime(st1, st2, 3);
+            const accessibleCalc = calculateRealTime(st1, st2, 4);
+
+            const routes = [
+                {
+                    id: 0,
+                    title: 'Rota Mais Rápida',
+                    time: `${baseCalc.minutes} min`,
+                    transfers: 0,
+                    badge: 'Frequência Real',
+                    badgeStyle: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                    line: st1.lines[0],
+                    boarding: 'Frente do trem (Vagões 1 ou 2)',
+                    co2: `${baseCalc.co2} kg`,
+                    isAccessible: st1.accessible && st2.accessible
+                },
+                {
+                    id: 1,
+                    title: 'Direta / Confortável',
+                    time: `${directCalc.minutes} min`,
+                    transfers: 1,
+                    badge: 'Menos Aglomeração',
+                    badgeStyle: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+                    line: `${st1.lines[0]} ➔ ${st2.lines[0]}`,
+                    boarding: 'Trás do trem (Vagão 5)',
+                    co2: `${directCalc.co2} kg`,
+                    isAccessible: true
+                },
+                {
+                    id: 2,
+                    title: 'Rota 100% Acessível',
+                    time: `${accessibleCalc.minutes} min`,
+                    transfers: 1,
+                    badge: 'Elevadores Integrados',
+                    badgeStyle: 'bg-sky-100 text-sky-800 border-sky-300',
+                    line: 'Conexão Sem Barreiras',
+                    boarding: 'Meio do trem (Acesso direto ao elevador)',
+                    co2: `${accessibleCalc.co2} kg`,
+                    isAccessible: true
+                }
+            ];
+
+            const filteredRoutes = accessibleOnly ? routes.filter(r => r.isAccessible) : routes;
+
+            container.innerHTML = filteredRoutes.map((route) => `
+                <div onclick="selectRoute(${route.id})" class="bg-white p-5 rounded-3xl border ${selectedRouteIndex === route.id ? 'border-blue-600 ring-2 ring-blue-500/20 shadow-md' : 'border-slate-200 hover:border-blue-400'} transition-all cursor-pointer relative overflow-hidden">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <span class="text-xs font-bold px-3 py-1 rounded-full border ${route.badgeStyle}">
+                            ${route.badge}
+                        </span>
+                        <div class="flex items-center space-x-4 text-xs font-semibold text-slate-500">
+                            <span class="text-blue-700 font-bold"><i class="fa-regular fa-clock text-blue-600"></i> ${route.time}</span>
+                            <span><i class="fa-solid fa-code-branch text-slate-400"></i> ${route.transfers} trocas</span>
+                            <span class="text-emerald-600 font-bold"><i class="fa-solid fa-leaf"></i> -${route.co2} CO₂</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center space-x-3 mb-4">
+                        <span class="font-black text-slate-800 text-base">${st1.name}</span>
+                        <i class="fa-solid fa-arrow-right text-blue-500 text-xs"></i>
+                        <span class="font-black text-slate-800 text-base">${st2.name}</span>
+                    </div>
+
+                    <div class="bg-slate-50 border border-slate-100 p-3 rounded-2xl flex items-center justify-between text-xs">
+                        <span class="text-slate-600">Clique para ver o trajeto completo no mapa</span>
+                        <span class="text-[11px] ${selectedRouteIndex === route.id ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-700'} px-2.5 py-1 rounded-lg font-bold">
+                            ${selectedRouteIndex === route.id ? '✓ Selecionado' : 'Ver Mapa'}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+
+            const selectedRouteObj = routes.find(r => r.id === selectedRouteIndex) || routes[0];
+            renderRouteMap(selectedRouteObj, st1, st2);
+        }
+
+        function selectRoute(routeId) {
+            selectedRouteIndex = routeId;
+            renderRoutes();
+        }
+
+        function swapStations() {
+            const originSelect = document.getElementById('origin-select');
+            const destSelect = document.getElementById('destination-select');
+            const temp = originSelect.value;
+            originSelect.value = destSelect.value;
+            destSelect.value = temp;
+            renderRoutes();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active-tab'));
+            
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabId}`).classList.add('active-tab');
+
+            if (tabId === 'trains') renderCarriages();
+            if (tabId === 'accessibility') renderAccessibilityList();
+            if (tabId === 'crowdsource') renderReports();
+        }
+
+        function renderCarriages() {
+            const container = document.getElementById('carriages-container');
+            if (!container) return;
+            const carriagesData = [
+                { pos: 'Frente (Carro 1)', status: 'Livre', color: 'bg-emerald-500', text: 'text-emerald-400', tip: 'Embarque Rápido' },
+                { pos: 'Frente (Carro 2)', status: 'Moderado', color: 'bg-amber-400', text: 'text-amber-300', tip: '' },
+                { pos: 'Meio (Carro 3)', status: 'Lotado', color: 'bg-rose-500', text: 'text-rose-400', tip: 'Aglomeração Alta' },
+                { pos: 'Meio (Carro 4)', status: 'Lotado', color: 'bg-rose-500', text: 'text-rose-400', tip: '' },
+                { pos: 'Trás (Carro 5)', status: 'Livre', color: 'bg-emerald-500', text: 'text-emerald-400', tip: 'Saída Acessível' }
+            ];
+
+            container.innerHTML = carriagesData.map(car => `
+                <div class="bg-slate-800 rounded-xl p-3 border border-slate-700 text-center">
+                    <div class="h-2.5 w-full ${car.color} rounded-full mb-3 shadow-sm"></div>
+                    <i class="fa-solid fa-train text-2xl text-slate-300 mb-1"></i>
+                    <span class="text-xs font-bold block text-white">${car.pos}</span>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full inline-block mt-1 ${car.text} bg-slate-900/50">${car.status}</span>
+                    ${car.tip ? `<span class="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-md block mt-2">⭐ ${car.tip}</span>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function renderAccessibilityList() {
+            const container = document.getElementById('accessibility-list');
+            if (!container) return;
+            container.innerHTML = STATIONS.map(st => `
+                <div class="p-4 bg-white flex items-center justify-between gap-3 border-b border-slate-100">
+                    <div>
+                        <h4 class="font-bold text-slate-800">${st.name}</h4>
+                        <p class="text-xs text-slate-500">Linhas: ${st.lines.join(', ')}</p>
+                    </div>
+                    <div class="flex items-center space-x-3 text-xs">
+                        <span>Elevadores: <strong>${st.elevators}</strong></span>
+                        <span>Piso Tátil: <strong>${st.tactilePaving ? 'Sim' : 'Não'}</strong></span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderReports() {
+            const container = document.getElementById('reports-feed');
+            if (!container) return;
+            container.innerHTML = reports.map(rep => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-start justify-between">
+                    <div>
+                        <span class="font-extrabold text-slate-800 text-sm">${rep.station}</span>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 ml-2">${rep.type}</span>
+                        <p class="text-xs text-slate-600 mt-1">${rep.message}</p>
+                    </div>
+                    <span class="text-xs font-bold text-slate-600">▲ ${rep.upvotes}</span>
+                </div>
+            `).join('');
+        }
+
+        // Inicializar aplicação ao carregar
+        window.onload = function() {
+            initializeStationSelects();
+            renderRoutes();
+        };
+    </script>
+</body>
+</html>
